@@ -360,4 +360,58 @@ function notificarCancelacionReunion($email, $nombreEmpresa, $nombreOtraEmpresa,
         return false;
     }
 }
+
+/**
+ * Enviar correo de seguimiento a empresas preinscritas en el formulario externo
+ */
+function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mensajePersonalizado, $asunto = null) {
+    $mail = configurarPHPMailer();
+    if (!$mail) return false;
+
+    $asuntoFinal = $asunto ?: 'Completa tu inscripción en la Rueda de Negocios';
+    $mensajeHtml = nl2br(htmlspecialchars($mensajePersonalizado));
+    $registroUrl = BASE_URL . 'views/registro.php';
+
+    try {
+        $mail->addAddress($emailEmpresa, $nombreEmpresa);
+        $mail->Subject = $asuntoFinal;
+
+        $mail->Body = "
+        <div style='font-family: Arial, sans-serif; color: #1f2937; max-width: 640px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;'>
+            <div style='background: linear-gradient(to right, #1e3a8a, #2563eb); padding: 28px; text-align: center;'>
+                <h1 style='color: #fff; margin: 0; font-size: 24px;'>Te estamos esperando en la Rueda de Negocios</h1>
+                <p style='color: #dbeafe; margin: 8px 0 0 0;'>Nodo Bioceánico Central - Arica 2025</p>
+            </div>
+
+            <div style='padding: 28px;'>
+                <p style='font-size: 16px; line-height: 1.6;'>Hola <strong>{$nombreEmpresa}</strong>,</p>
+                <p style='font-size: 15px; line-height: 1.6;'>Detectamos tu interés en participar en la rueda de negocios. Para asegurar tu cupo necesitamos que completes la inscripción en nuestra plataforma.</p>
+
+                <div style='background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin: 20px 0;'>
+                    <p style='margin: 0; color: #1d4ed8; font-weight: 600;'>Mensaje para ti:</p>
+                    <p style='margin: 8px 0 0 0; color: #1f2937; line-height: 1.6;'>{$mensajeHtml}</p>
+                </div>
+
+                <div style='text-align: center; margin: 24px 0;'>
+                    <a href='{$registroUrl}' style='background: linear-gradient(to right, #1e3a8a, #2563eb); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block;'>
+                        Finalizar inscripción
+                    </a>
+                </div>
+
+                <p style='font-size: 14px; color: #4b5563; line-height: 1.5;'>Si ya completaste el registro, ignora este mensaje. De lo contrario, ingresa cuanto antes para asegurar tu participación.</p>
+            </div>
+
+            <div style='background: #f3f4f6; padding: 18px; text-align: center; border-top: 1px solid #e5e7eb;'>
+                <p style='margin: 0; font-size: 12px; color: #6b7280;'>© 2025 Rueda de Negocios - Nodo Bioceánico Central</p>
+                <p style='margin: 6px 0 0 0; font-size: 12px; color: #9ca3af;'>Este es un correo automático, por favor no responder directamente.</p>
+            </div>
+        </div>
+        ";
+
+        return $mail->send();
+    } catch (Exception $e) {
+        error_log("Error al enviar seguimiento de inscripción: " . $mail->ErrorInfo);
+        return false;
+    }
+}
 ?>
