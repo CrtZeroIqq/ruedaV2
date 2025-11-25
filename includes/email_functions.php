@@ -368,7 +368,7 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
     $mail = configurarPHPMailer();
     if (!$mail) return false;
 
-    $asuntoFinal = $asunto ?: 'Completa tu inscripción en la Rueda de Negocios';
+    $asuntoFinal = $asunto ?: 'Asegura tu cupo en la Rueda de Negocios';
     $mensajeHtml = nl2br(htmlspecialchars($mensajePersonalizado));
     $registroUrl = BASE_URL . 'views/registro.php';
 
@@ -377,33 +377,44 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
         $mail->Subject = $asuntoFinal;
 
         $mail->Body = "
-        <div style='font-family: Arial, sans-serif; color: #1f2937; max-width: 640px; margin: auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;'>
-            <div style='background: linear-gradient(to right, #1e3a8a, #2563eb); padding: 28px; text-align: center;'>
-                <h1 style='color: #fff; margin: 0; font-size: 24px;'>Te estamos esperando en la Rueda de Negocios</h1>
-                <p style='color: #dbeafe; margin: 8px 0 0 0;'>Nodo Bioceánico Central - Arica 2025</p>
+        <div style='font-family: Arial, sans-serif; color: #111827; max-width: 680px; margin: auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 15px 45px rgba(37, 99, 235, 0.12);'>
+            <div style='background: radial-gradient(circle at 20% 20%, #3b82f6, #1e3a8a); padding: 32px; text-align: center; color: #fff;'>
+                <p style='margin: 0; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; opacity: 0.9;'>Nodo Bioceánico Central · Arica 2025</p>
+                <h1 style='margin: 12px 0 6px; font-size: 26px;'>¡Tu lugar en la Rueda de Negocios te está esperando!</h1>
+                <p style='margin: 0; font-size: 15px; color: #e0e7ff;'>Agenda reuniones con empresas clave y potencia tus conexiones internacionales.</p>
             </div>
 
-            <div style='padding: 28px;'>
-                <p style='font-size: 16px; line-height: 1.6;'>Hola <strong>{$nombreEmpresa}</strong>,</p>
-                <p style='font-size: 15px; line-height: 1.6;'>Detectamos tu interés en participar en la rueda de negocios. Para asegurar tu cupo necesitamos que completes la inscripción en nuestra plataforma.</p>
+            <div style='padding: 30px 30px 10px;'>
+                <p style='font-size: 16px; line-height: 1.7; margin: 0 0 14px;'>Hola <strong>{$nombreEmpresa}</strong>,</p>
+                <p style='font-size: 15px; line-height: 1.7; margin: 0 0 16px;'>Detectamos tu interés y estamos reservando un espacio para ti. Solo falta un paso para asegurar tu cupo y empezar a crear tu agenda de reuniones.</p>
 
-                <div style='background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 16px; margin: 20px 0;'>
-                    <p style='margin: 0; color: #1d4ed8; font-weight: 600;'>Mensaje para ti:</p>
-                    <p style='margin: 8px 0 0 0; color: #1f2937; line-height: 1.6;'>{$mensajeHtml}</p>
+                <div style='background: linear-gradient(135deg, #eef2ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px; margin: 18px 0;'>
+                    <p style='margin: 0; color: #1d4ed8; font-weight: 700;'>Tu mensaje personalizado</p>
+                    <p style='margin: 10px 0 0; color: #111827; line-height: 1.6;'>{$mensajeHtml}</p>
                 </div>
 
-                <div style='text-align: center; margin: 24px 0;'>
-                    <a href='{$registroUrl}' style='background: linear-gradient(to right, #1e3a8a, #2563eb); color: white; padding: 14px 36px; text-decoration: none; border-radius: 10px; font-weight: bold; display: inline-block;'>
-                        Finalizar inscripción
+                <div style='background: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin: 18px 0;'>
+                    <p style='margin: 0; color: #92400e; font-weight: 700;'>Beneficios de confirmar ahora:</p>
+                    <ul style='margin: 12px 0 0 20px; padding: 0; color: #92400e; line-height: 1.6; font-size: 14px;'>
+                        <li>Accede primero a los mejores horarios para reuniones.</li>
+                        <li>Visibilidad preferente frente a las empresas demandantes.</li>
+                        <li>Soporte personalizado para preparar tu pitch y materiales.</li>
+                    </ul>
+                </div>
+
+                <div style='text-align: center; margin: 26px 0;'>
+                    <a href='{$registroUrl}' style='background: linear-gradient(to right, #f97316, #fb923c); color: #fff; padding: 15px 40px; text-decoration: none; border-radius: 12px; font-weight: 800; display: inline-block; box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3); letter-spacing: 0.01em;'>
+                        Reservar mi cupo ahora
                     </a>
+                    <p style='margin: 12px 0 0; font-size: 13px; color: #6b7280;'>Toma menos de 3 minutos y puedes volver cuando quieras.</p>
                 </div>
 
-                <p style='font-size: 14px; color: #4b5563; line-height: 1.5;'>Si ya completaste el registro, ignora este mensaje. De lo contrario, ingresa cuanto antes para asegurar tu participación.</p>
+                <p style='font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0;'>Si ya completaste el registro, ¡gracias! Ignora este mensaje. De lo contrario, confirma hoy y aprovecha la vitrina internacional de la rueda.</p>
             </div>
 
-            <div style='background: #f3f4f6; padding: 18px; text-align: center; border-top: 1px solid #e5e7eb;'>
-                <p style='margin: 0; font-size: 12px; color: #6b7280;'>© 2025 Rueda de Negocios - Nodo Bioceánico Central</p>
-                <p style='margin: 6px 0 0 0; font-size: 12px; color: #9ca3af;'>Este es un correo automático, por favor no responder directamente.</p>
+            <div style='background: #0f172a; color: #cbd5e1; padding: 18px; text-align: center; border-top: 1px solid #1e293b;'>
+                <p style='margin: 0; font-size: 12px;'>© 2025 Rueda de Negocios - Nodo Bioceánico Central</p>
+                <p style='margin: 6px 0 0 0; font-size: 12px; color: #94a3b8;'>Este es un correo automático, por favor no responder directamente.</p>
             </div>
         </div>
         ";

@@ -819,7 +819,7 @@ require_once '../includes/header.php';
                                 </div>
                             </div>
 
-                            <?php $mensajeSeguimientoDefault = "Vimos tu interés en participar en la rueda de negocios. Completa tu registro en la plataforma para reservar tu espacio."; ?>
+                            <?php $mensajeSeguimientoDefault = "¡Gracias por tu interés! Estamos reservando un espacio para ti en la rueda de negocios. Completa el registro ahora y asegura reuniones con las empresas que más te interesan."; ?>
 
                             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
