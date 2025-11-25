@@ -369,7 +369,6 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
     if (!$mail) return false;
 
     $asuntoFinal = $asunto ?: 'Completa tu registro para la Rueda de Negocios Bioceánica';
-    $mensajeHtml = nl2br(htmlspecialchars($mensajePersonalizado));
     $registroUrl = BASE_URL . 'views/registro.php';
 
     try {
@@ -378,27 +377,15 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
 
         $mail->Body = "
         <div style='font-family: Arial, sans-serif; color: #111827; max-width: 680px; margin: auto; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; box-shadow: 0 15px 45px rgba(37, 99, 235, 0.12);'>
-            <div style='background: radial-gradient(circle at 20% 20%, #3b82f6, #1e3a8a); padding: 32px; text-align: center; color: #fff;'>
-                <p style='margin: 0; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; opacity: 0.9;'>Nodo Bioceánico Central · Arica 2025</p>
-                <h1 style='margin: 12px 0 6px; font-size: 26px;'>¡Tu lugar en la Rueda de Negocios te está esperando!</h1>
-                <p style='margin: 0; font-size: 15px; color: #e0e7ff;'>Agenda reuniones con empresas clave y potencia tus conexiones internacionales.</p>
-            </div>
-
             <div style='padding: 30px 30px 10px;'>
                 <p style='font-size: 16px; line-height: 1.7; margin: 0 0 14px;'>Hola <strong>{$nombreEmpresa}</strong>,</p>
                 <p style='font-size: 15px; line-height: 1.7; margin: 0 0 16px;'>Detectamos que aún no has completado tu registro para participar en la rueda de negocios del Corredor Bioceánico Central. No queremos que te pierdas el gran encuentro de negocios: termina tu inscripción y asegura tu lugar.</p>
-
-                <div style='background: linear-gradient(135deg, #eef2ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px; margin: 18px 0;'>
-                    <p style='margin: 0; color: #1d4ed8; font-weight: 700;'>Tu mensaje personalizado</p>
-                    <p style='margin: 10px 0 0; color: #111827; line-height: 1.6;'>{$mensajeHtml}</p>
-                </div>
 
                 <div style='background: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin: 18px 0;'>
                     <p style='margin: 0; color: #92400e; font-weight: 700;'>Beneficios de confirmar ahora:</p>
                     <ul style='margin: 12px 0 0 20px; padding: 0; color: #92400e; line-height: 1.6; font-size: 14px;'>
                         <li>Asegura tu cupo antes de que se complete el aforo del evento bioceánico.</li>
                         <li>Accede primero a los mejores horarios para reuniones estratégicas.</li>
-                        <li>Recibe soporte personalizado para preparar tu pitch y materiales.</li>
                     </ul>
                 </div>
 
