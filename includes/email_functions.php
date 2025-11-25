@@ -368,7 +368,7 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
     $mail = configurarPHPMailer();
     if (!$mail) return false;
 
-    $asuntoFinal = $asunto ?: 'Asegura tu cupo en la Rueda de Negocios';
+    $asuntoFinal = $asunto ?: 'Completa tu registro para la Rueda de Negocios Bioceánica';
     $mensajeHtml = nl2br(htmlspecialchars($mensajePersonalizado));
     $registroUrl = BASE_URL . 'views/registro.php';
 
@@ -386,7 +386,7 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
 
             <div style='padding: 30px 30px 10px;'>
                 <p style='font-size: 16px; line-height: 1.7; margin: 0 0 14px;'>Hola <strong>{$nombreEmpresa}</strong>,</p>
-                <p style='font-size: 15px; line-height: 1.7; margin: 0 0 16px;'>Detectamos tu interés y estamos reservando un espacio para ti. Solo falta un paso para asegurar tu cupo y empezar a crear tu agenda de reuniones.</p>
+                <p style='font-size: 15px; line-height: 1.7; margin: 0 0 16px;'>Detectamos que aún no has completado tu registro para participar en la rueda de negocios del Corredor Bioceánico Central. No queremos que te pierdas el gran encuentro de negocios: termina tu inscripción y asegura tu lugar.</p>
 
                 <div style='background: linear-gradient(135deg, #eef2ff, #dbeafe); border: 1px solid #bfdbfe; border-radius: 12px; padding: 18px; margin: 18px 0;'>
                     <p style='margin: 0; color: #1d4ed8; font-weight: 700;'>Tu mensaje personalizado</p>
@@ -396,9 +396,9 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
                 <div style='background: #fef3c7; border: 1px solid #fcd34d; border-radius: 12px; padding: 16px; margin: 18px 0;'>
                     <p style='margin: 0; color: #92400e; font-weight: 700;'>Beneficios de confirmar ahora:</p>
                     <ul style='margin: 12px 0 0 20px; padding: 0; color: #92400e; line-height: 1.6; font-size: 14px;'>
-                        <li>Accede primero a los mejores horarios para reuniones.</li>
-                        <li>Visibilidad preferente frente a las empresas demandantes.</li>
-                        <li>Soporte personalizado para preparar tu pitch y materiales.</li>
+                        <li>Asegura tu cupo antes de que se complete el aforo del evento bioceánico.</li>
+                        <li>Accede primero a los mejores horarios para reuniones estratégicas.</li>
+                        <li>Recibe soporte personalizado para preparar tu pitch y materiales.</li>
                     </ul>
                 </div>
 
@@ -409,7 +409,7 @@ function enviarCorreoSeguimientoInscripcion($emailEmpresa, $nombreEmpresa, $mens
                     <p style='margin: 12px 0 0; font-size: 13px; color: #6b7280;'>Toma menos de 3 minutos y puedes volver cuando quieras.</p>
                 </div>
 
-                <p style='font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0;'>Si ya completaste el registro, ¡gracias! Ignora este mensaje. De lo contrario, confirma hoy y aprovecha la vitrina internacional de la rueda.</p>
+                <p style='font-size: 14px; color: #4b5563; line-height: 1.6; margin: 0;'>Si ya completaste el registro, ¡gracias! Ignora este mensaje. Si no, completa tu inscripción hoy para que no te pierdas el gran evento del Corredor Bioceánico y su vitrina internacional.</p>
             </div>
 
             <div style='background: #0f172a; color: #cbd5e1; padding: 18px; text-align: center; border-top: 1px solid #1e293b;'>

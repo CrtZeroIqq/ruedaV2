@@ -819,13 +819,13 @@ require_once '../includes/header.php';
                                 </div>
                             </div>
 
-                            <?php $mensajeSeguimientoDefault = "¡Gracias por tu interés! Estamos reservando un espacio para ti en la rueda de negocios. Completa el registro ahora y asegura reuniones con las empresas que más te interesan."; ?>
+                            <?php $mensajeSeguimientoDefault = "Detectamos que aún no has completado tu registro para participar en la rueda de negocios del Corredor Bioceánico Central. Completa tu inscripción hoy y no te pierdas el gran evento."; ?>
 
                             <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">Asunto del correo</label>
-                                        <input type="text" id="seguimiento_asunto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" value="Completa tu inscripción en la Rueda de Negocios">
+                                        <input type="text" id="seguimiento_asunto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" value="Completa tu registro para la Rueda de Negocios Bioceánica">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
