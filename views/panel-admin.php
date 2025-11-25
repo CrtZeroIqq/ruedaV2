@@ -4,9 +4,20 @@ require_once '../config/database.php';
 require_once '../config/config.php';
 require_once '../config/session.php';
 require_once '../includes/functions.php';
+require_once '../config/database_registro_evento.php';
 
 // Ahora SÍ podemos usar las constantes
 $pageTitle = "Panel Administrador - " . SITE_NAME;
+
+function obtenerCampoRegistro($registro, $posiblesCampos) {
+    foreach ($posiblesCampos as $campo) {
+        if (isset($registro[$campo]) && trim($registro[$campo]) !== '') {
+            return trim($registro[$campo]);
+        }
+    }
+
+    return '';
+}
 
 // Verificar acceso
 checkAccess([ROL_ADMIN]);
@@ -51,16 +62,88 @@ try {
     
     // Obtener todas las empresas
     $stmt = $pdo->query("
-        SELECT * FROM empresas 
+        SELECT * FROM empresas
         WHERE activo = 1
         ORDER BY tipo DESC, nombre
     ");
     $empresas = $stmt->fetchAll();
-    
+
+    // Mapear empresas existentes por email y nombre para detectar coincidencias
+    $empresasPorEmail = [];
+    $empresasPorNombre = [];
+
+    foreach ($empresas as $empresa) {
+        $emailClave = strtolower(trim($empresa['email_contacto'] ?? ''));
+        $nombreClave = strtolower(trim($empresa['nombre'] ?? ''));
+
+        if ($emailClave !== '') {
+            $empresasPorEmail[$emailClave] = $empresa;
+        }
+
+        if ($nombreClave !== '') {
+            $empresasPorNombre[$nombreClave] = $empresa;
+        }
+    }
+
+    // Obtener empresas interesadas desde el formulario externo (registro_evento)
+    $empresasSeguimiento = [];
+    $seguimientoError = null;
+
+    if ($pdoRegistro) {
+        try {
+            $columnas = $pdoRegistro->query("SHOW COLUMNS FROM registros")->fetchAll(PDO::FETCH_ASSOC);
+            $nombresColumnas = array_column($columnas, 'Field');
+
+            if (!in_array('rueda', $nombresColumnas)) {
+                $seguimientoError = "La tabla 'registros' no tiene la columna 'rueda'.";
+            } else {
+                $stmtRegistros = $pdoRegistro->query("SELECT * FROM registros WHERE LOWER(TRIM(rueda)) = 'si'");
+
+                while ($registro = $stmtRegistros->fetch()) {
+                    $nombreEmpresa = obtenerCampoRegistro($registro, ['empresa', 'nombre_empresa', 'razon_social', 'empresa_nombre', 'nombre']);
+                    $contacto = obtenerCampoRegistro($registro, ['contacto', 'nombre_contacto', 'representante', 'persona', 'nombre_persona']);
+                    $email = obtenerCampoRegistro($registro, ['email', 'correo', 'correo_empresa', 'correo_contacto', 'email_contacto', 'mail']);
+                    $telefono = obtenerCampoRegistro($registro, ['telefono', 'fono', 'celular', 'telefono_contacto']);
+                    $registroId = obtenerCampoRegistro($registro, ['id', 'registro_id', 'ID']) ?: (count($empresasSeguimiento) + 1);
+
+                    $emailValido = isValidEmail($email);
+                    $emailClave = $emailValido ? strtolower(trim($email)) : '';
+                    $nombreClave = strtolower(trim($nombreEmpresa));
+
+                    $coincidencia = null;
+                    if ($emailClave && isset($empresasPorEmail[$emailClave])) {
+                        $coincidencia = $empresasPorEmail[$emailClave];
+                    } elseif ($nombreClave && isset($empresasPorNombre[$nombreClave])) {
+                        $coincidencia = $empresasPorNombre[$nombreClave];
+                    }
+
+                    $empresasSeguimiento[] = [
+                        'registro_id' => $registroId,
+                        'empresa' => $nombreEmpresa ?: 'Sin nombre',
+                        'contacto' => $contacto,
+                        'email' => $emailValido ? $email : '',
+                        'email_valido' => $emailValido,
+                        'telefono' => $telefono,
+                        'ya_inscrita' => (bool) $coincidencia,
+                        'empresa_existente_id' => $coincidencia['id'] ?? null
+                    ];
+                }
+            }
+        } catch (PDOException $e) {
+            $seguimientoError = $e->getMessage();
+        }
+    } else {
+        $seguimientoError = 'No fue posible conectar con la base de datos registro_evento.';
+    }
+
+    $totalSeguimiento = count($empresasSeguimiento);
+    $seguimientoInscritas = count(array_filter($empresasSeguimiento, fn($e) => $e['ya_inscrita']));
+    $seguimientoPendientes = $totalSeguimiento - $seguimientoInscritas;
+
     // Obtener todas las reuniones
     $stmt = $pdo->query("
         SELECT
-            r.*,
+            r.*, 
             ea.nombre as empresa_a_nombre,
             ea.rubro as empresa_a_rubro,
             ea.email_contacto as empresa_a_email,
@@ -213,6 +296,12 @@ require_once '../includes/header.php';
                             class="tab-btn flex-1 py-4 px-4 text-center border-b-2 font-medium text-sm transition-colors duration-200"
                             data-tab="exportar">
                         <i class="fas fa-download mr-1"></i>Exportar
+                    </button>
+
+                    <button onclick="switchTab('seguimiento')"
+                            class="tab-btn flex-1 py-4 px-4 text-center border-b-2 font-medium text-sm transition-colors duration-200"
+                            data-tab="seguimiento">
+                        <i class="fas fa-envelope-open-text mr-1"></i>Seguimiento
                     </button>
                 </nav>
             </div>
@@ -690,7 +779,145 @@ require_once '../includes/header.php';
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Tab: Seguimiento de inscripción -->
+                <div id="tab-seguimiento" class="tab-content hidden">
+                    <div class="space-y-6">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <h3 class="text-2xl font-bold text-gray-900">Seguimiento a empresas interesadas</h3>
+                                <p class="text-gray-600">Cruza los registros del formulario externo con las empresas inscritas en la rueda.</p>
+                            </div>
+                            <div class="bg-blue-50 text-blue-800 px-4 py-3 rounded-lg border border-blue-200 text-sm">
+                                <i class="fas fa-link mr-2"></i>
+                                Fuente: base de datos <strong>registro_evento.registros</strong>
+                            </div>
+                        </div>
+
+                        <?php if ($seguimientoError): ?>
+                            <div class="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg">
+                                <strong>Error al cargar datos:</strong> <?php echo htmlspecialchars($seguimientoError); ?>
+                            </div>
+                        <?php elseif ($totalSeguimiento === 0): ?>
+                            <div class="text-center py-12">
+                                <i class="fas fa-envelope-open text-5xl text-gray-300 mb-4"></i>
+                                <p class="text-gray-600">No se encontraron empresas con intención de rueda en la base externa.</p>
+                            </div>
+                        <?php else: ?>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                    <p class="text-sm text-gray-500">Empresas interesadas</p>
+                                    <p class="text-3xl font-bold text-gray-900"><?php echo $totalSeguimiento; ?></p>
+                                </div>
+                                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                    <p class="text-sm text-gray-500">Pendientes de inscripción</p>
+                                    <p class="text-3xl font-bold text-amber-600"><?php echo $seguimientoPendientes; ?></p>
+                                </div>
+                                <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                    <p class="text-sm text-gray-500">Ya inscritas en rueda_negocios_arica</p>
+                                    <p class="text-3xl font-bold text-green-600"><?php echo $seguimientoInscritas; ?></p>
+                                </div>
+                            </div>
+
+                            <?php $mensajeSeguimientoDefault = "Detectamos que aún no has completado tu registro para participar en la rueda de negocios del Corredor Bioceánico Central. Completa tu inscripción hoy y no te pierdas el gran evento."; ?>
+
+                            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Asunto del correo</label>
+                                        <input type="text" id="seguimiento_asunto" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500" value="Completa tu registro para la Rueda de Negocios Bioceánica">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-semibold text-gray-700 mb-2">Mensaje</label>
+                                        <textarea id="seguimiento_mensaje" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"><?php echo htmlspecialchars($mensajeSeguimientoDefault); ?></textarea>
+                                        <p class="text-xs text-gray-500 mt-1">El enlace al formulario de inscripción se agrega automáticamente.</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-col md:flex-row md:items-center gap-3 mt-4">
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="mostrarInscritas" class="h-4 w-4 text-primary-600 border-gray-300 rounded">
+                                        <label for="mostrarInscritas" class="text-sm text-gray-700">Mostrar empresas ya inscritas</label>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        <input type="checkbox" id="selectAllSeguimiento" class="h-4 w-4 text-primary-600 border-gray-300 rounded">
+                                        <label for="selectAllSeguimiento" class="text-sm text-gray-700">Seleccionar todas las visibles</label>
+                                    </div>
+
+                                    <div class="flex-1 text-sm text-gray-500">Solo se enviarán correos con direcciones válidas.</div>
+
+                                    <div class="flex gap-2 justify-end">
+                                        <button id="btnEnviarPendientes" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                                            <i class="fas fa-paper-plane mr-2"></i>Enviar a pendientes
+                                        </button>
+                                        <button id="btnEnviarSeleccionados" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors">
+                                            <i class="fas fa-envelope mr-2"></i>Enviar a seleccionados
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-4 py-3">
+                                                <span class="sr-only">Seleccionar</span>
+                                            </th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contacto</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <?php foreach ($empresasSeguimiento as $empresa): ?>
+                                            <?php
+                                            $rowId = 'seguimiento-' . $empresa['registro_id'];
+                                            $estadoBadge = $empresa['ya_inscrita']
+                                                ? '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i>Ya inscrita</span>'
+                                                : '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800"><i class="fas fa-clock mr-1"></i>Pendiente</span>';
+                                            ?>
+                                            <tr id="<?php echo $rowId; ?>"
+                                                data-seguimiento-row
+                                                data-ya-inscrita="<?php echo $empresa['ya_inscrita'] ? '1' : '0'; ?>"
+                                                data-email-valido="<?php echo $empresa['email_valido'] ? '1' : '0'; ?>"
+                                                data-email="<?php echo htmlspecialchars($empresa['email']); ?>"
+                                                data-nombre="<?php echo htmlspecialchars($empresa['empresa']); ?>">
+                                                <td class="px-4 py-3 text-center">
+                                                    <input type="checkbox" class="seguimiento-checkbox h-4 w-4 text-primary-600 border-gray-300 rounded" <?php echo !$empresa['email_valido'] ? 'disabled' : ''; ?>>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                                                    <?php echo htmlspecialchars($empresa['empresa']); ?>
+                                                    <div class="text-xs text-gray-500">Registro ID: <?php echo htmlspecialchars($empresa['registro_id']); ?></div>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                                    <?php echo $empresa['contacto'] ? htmlspecialchars($empresa['contacto']) : '—'; ?>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                                    <?php if ($empresa['email_valido']): ?>
+                                                        <?php echo htmlspecialchars($empresa['email']); ?>
+                                                    <?php else: ?>
+                                                        <span class="text-red-500 font-medium">Correo inválido</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">
+                                                    <?php echo $empresa['telefono'] ? htmlspecialchars($empresa['telefono']) : '—'; ?>
+                                                </td>
+                                                <td class="px-4 py-3 whitespace-nowrap text-sm">
+                                                    <?php echo $estadoBadge; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -857,9 +1084,102 @@ function switchTab(tabName) {
     const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
     activeBtn.classList.remove('text-gray-500', 'border-transparent', 'hover:text-gray-700', 'hover:border-gray-300');
     activeBtn.classList.add('active', 'text-primary-600', 'border-primary-600');
-    
+
     document.getElementById('tab-' + tabName).classList.remove('hidden');
 }
+
+// Seguimiento de empresas externas
+function filtrarEmpresasSeguimiento() {
+    const mostrarInscritas = document.getElementById('mostrarInscritas')?.checked;
+    document.querySelectorAll('[data-seguimiento-row]').forEach(row => {
+        const esInscrita = row.dataset.yaInscrita === '1';
+        if (!mostrarInscritas && esInscrita) {
+            row.classList.add('hidden');
+            const checkbox = row.querySelector('.seguimiento-checkbox');
+            if (checkbox) checkbox.checked = false;
+        } else {
+            row.classList.remove('hidden');
+        }
+    });
+}
+
+function seleccionarTodoSeguimiento(checked) {
+    document.querySelectorAll('[data-seguimiento-row]').forEach(row => {
+        if (row.classList.contains('hidden')) return;
+        const checkbox = row.querySelector('.seguimiento-checkbox');
+        if (checkbox && !checkbox.disabled) {
+            checkbox.checked = checked;
+        }
+    });
+}
+
+function obtenerDestinatariosSeguimiento(tipo = 'seleccion') {
+    const destinatarios = [];
+
+    document.querySelectorAll('[data-seguimiento-row]').forEach(row => {
+        const emailValido = row.dataset.emailValido === '1';
+        const yaInscrita = row.dataset.yaInscrita === '1';
+        const email = row.dataset.email;
+        const nombre = row.dataset.nombre || 'Empresa';
+        const checkbox = row.querySelector('.seguimiento-checkbox');
+
+        if (!emailValido || !email) return;
+        if (row.classList.contains('hidden') && tipo === 'seleccion') return;
+
+        if (tipo === 'seleccion' && checkbox && checkbox.checked) {
+            destinatarios.push({ email, nombre });
+        }
+
+        if (tipo === 'pendientes' && !yaInscrita) {
+            destinatarios.push({ email, nombre });
+        }
+    });
+
+    return destinatarios;
+}
+
+function enviarCorreosSeguimiento(destinatarios) {
+    if (!destinatarios.length) {
+        alert('No hay destinatarios válidos para enviar.');
+        return;
+    }
+
+    const payload = {
+        accion: 'enviar_correos',
+        destinatarios,
+        asunto: document.getElementById('seguimiento_asunto')?.value || '',
+        mensaje: document.getElementById('seguimiento_mensaje')?.value || ''
+    };
+
+    fetch('<?php echo BASE_URL; ?>api/seguimiento_empresas.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+    })
+    .catch(error => {
+        alert('✗ Error de conexión al enviar correos');
+        console.error(error);
+    });
+}
+
+document.getElementById('mostrarInscritas')?.addEventListener('change', filtrarEmpresasSeguimiento);
+document.getElementById('selectAllSeguimiento')?.addEventListener('change', (e) => seleccionarTodoSeguimiento(e.target.checked));
+
+document.getElementById('btnEnviarPendientes')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const destinatarios = obtenerDestinatariosSeguimiento('pendientes');
+    enviarCorreosSeguimiento(destinatarios);
+});
+
+document.getElementById('btnEnviarSeleccionados')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    const destinatarios = obtenerDestinatariosSeguimiento('seleccion');
+    enviarCorreosSeguimiento(destinatarios);
+});
 
 // Abrir modal de edición
 function abrirModalEditar(reunion) {
@@ -1228,6 +1548,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (firstBtn) {
         firstBtn.classList.add('text-primary-600', 'border-primary-600');
     }
+
+    filtrarEmpresasSeguimiento();
 });
 </script>
 
